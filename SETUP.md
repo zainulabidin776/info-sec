@@ -97,10 +97,12 @@ Or start them separately:
 
 ```bash
 # Terminal 1 - Backend
-npm run server
+cd server
+npm run dev
 
 # Terminal 2 - Frontend
-npm run client
+cd client
+npm run start
 ```
 
 ### 6. Access the Application
