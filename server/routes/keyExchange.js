@@ -128,8 +128,8 @@ router.get('/pending', authenticate, async (req, res) => {
         { responderId: req.userId, status: 'initiated' }
       ]
     })
-    .populate('initiatorId', 'username publicKeyJWK')
-    .populate('responderId', 'username publicKeyJWK')
+    .populate('initiatorId', 'username publicKeyJWK signingPublicKeyJWK')
+    .populate('responderId', 'username publicKeyJWK signingPublicKeyJWK')
     .sort({ createdAt: -1 });
 
     res.json(keyExchanges);
@@ -142,8 +142,8 @@ router.get('/pending', authenticate, async (req, res) => {
 router.get('/:keyExchangeId', authenticate, async (req, res) => {
   try {
     const keyExchange = await KeyExchange.findById(req.params.keyExchangeId)
-      .populate('initiatorId', 'username publicKeyJWK')
-      .populate('responderId', 'username publicKeyJWK');
+      .populate('initiatorId', 'username publicKeyJWK signingPublicKeyJWK')
+      .populate('responderId', 'username publicKeyJWK signingPublicKeyJWK');
 
     if (!keyExchange) {
       return res.status(404).json({ error: 'Key exchange not found' });

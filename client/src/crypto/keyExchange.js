@@ -14,7 +14,9 @@ import {
   generateECDHKeyPair, 
   importECDHPublicKey, 
   importECDHPrivateKey,
-  importPrivateKey 
+  importPrivateKey,
+  importSigningPrivateKey,
+  importSigningPublicKey
 } from './keyManager';
 import { deriveAESKey, generateNonce } from './encryption';
 

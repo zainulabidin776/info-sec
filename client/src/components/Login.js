@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import { generateKeyPair, generateECDHKeyPair, exportPublicKey, exportPrivateKey, storeKeys } from '../crypto/keyManager';
+import { generateKeyPair, generateSigningKeyPair, generateECDHKeyPair, exportPublicKey, exportPrivateKey, storeKeys } from '../crypto/keyManager';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
@@ -40,23 +40,27 @@ const Login = ({ onLogin }) => {
 
         // Generate keys
         const rsaKeyPair = await generateKeyPair();
+        const signingKeyPair = await generateSigningKeyPair();
         const ecdhKeyPair = await generateECDHKeyPair();
 
         // Export keys
         const publicKeyJWK = await exportPublicKey(rsaKeyPair.publicKey);
         const privateKeyJWK = await exportPrivateKey(rsaKeyPair.privateKey);
+        const signingPublicKeyJWK = await exportPublicKey(signingKeyPair.publicKey);
+        const signingPrivateKeyJWK = await exportPrivateKey(signingKeyPair.privateKey);
         const ecdhPublicKeyJWK = await exportPublicKey(ecdhKeyPair.publicKey);
         const ecdhPrivateKeyJWK = await exportPrivateKey(ecdhKeyPair.privateKey);
 
         // Store keys locally
-        await storeKeys(username, publicKeyJWK, privateKeyJWK, ecdhPublicKeyJWK, ecdhPrivateKeyJWK);
+        await storeKeys(username, publicKeyJWK, privateKeyJWK, ecdhPublicKeyJWK, ecdhPrivateKeyJWK, signingPublicKeyJWK, signingPrivateKeyJWK);
 
         // Register with server
         const response = await authAPI.register({
           username,
           password,
           publicKey: JSON.stringify(publicKeyJWK),
-          publicKeyJWK
+          publicKeyJWK,
+          signingPublicKeyJWK
         });
 
         const { token, user } = response.data;

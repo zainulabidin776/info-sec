@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema({
     type: Object,
     required: true
   },
+  // Store RSA-PSS public key for signature verification
+  signingPublicKeyJWK: {
+    type: Object,
+    required: false // Optional for backward compatibility
+  },
   createdAt: {
     type: Date,
     default: Date.now

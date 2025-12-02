@@ -28,7 +28,7 @@ const initDB = () => {
 };
 
 /**
- * Generate RSA key pair for user
+ * Generate RSA key pair for user (encryption)
  * @returns {Promise<{publicKey: CryptoKey, privateKey: CryptoKey}>}
  */
 export const generateKeyPair = async () => {
@@ -48,6 +48,30 @@ export const generateKeyPair = async () => {
   } catch (error) {
     console.error('Error generating key pair:', error);
     throw new Error('Failed to generate key pair');
+  }
+};
+
+/**
+ * Generate RSA-PSS key pair for signing
+ * @returns {Promise<{publicKey: CryptoKey, privateKey: CryptoKey}>}
+ */
+export const generateSigningKeyPair = async () => {
+  try {
+    const keyPair = await window.crypto.subtle.generateKey(
+      {
+        name: 'RSA-PSS',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256',
+      },
+      true, // extractable
+      ['sign', 'verify']
+    );
+
+    return keyPair;
+  } catch (error) {
+    console.error('Error generating signing key pair:', error);
+    throw new Error('Failed to generate signing key pair');
   }
 };
 
@@ -176,6 +200,54 @@ export const importPrivateKey = async (jwk) => {
 };
 
 /**
+ * Import RSA-PSS private key for signing from JWK format
+ * @param {Object} jwk
+ * @returns {Promise<CryptoKey>}
+ */
+export const importSigningPrivateKey = async (jwk) => {
+  try {
+    const key = await window.crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      {
+        name: 'RSA-PSS',
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign']
+    );
+    return key;
+  } catch (error) {
+    console.error('Error importing signing private key:', error);
+    throw new Error('Failed to import signing private key');
+  }
+};
+
+/**
+ * Import RSA-PSS public key for verification from JWK format
+ * @param {Object} jwk
+ * @returns {Promise<CryptoKey>}
+ */
+export const importSigningPublicKey = async (jwk) => {
+  try {
+    const key = await window.crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      {
+        name: 'RSA-PSS',
+        hash: 'SHA-256',
+      },
+      true,
+      ['verify']
+    );
+    return key;
+  } catch (error) {
+    console.error('Error importing signing public key:', error);
+    throw new Error('Failed to import signing public key');
+  }
+};
+
+/**
  * Import ECDH private key from JWK format
  * @param {Object} jwk
  * @returns {Promise<CryptoKey>}
@@ -206,8 +278,10 @@ export const importECDHPrivateKey = async (jwk) => {
  * @param {Object} privateKeyJWK
  * @param {Object} ecdhPublicKeyJWK
  * @param {Object} ecdhPrivateKeyJWK
+ * @param {Object} signingPublicKeyJWK
+ * @param {Object} signingPrivateKeyJWK
  */
-export const storeKeys = async (username, publicKeyJWK, privateKeyJWK, ecdhPublicKeyJWK, ecdhPrivateKeyJWK) => {
+export const storeKeys = async (username, publicKeyJWK, privateKeyJWK, ecdhPublicKeyJWK, ecdhPrivateKeyJWK, signingPublicKeyJWK, signingPrivateKeyJWK) => {
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -220,6 +294,8 @@ export const storeKeys = async (username, publicKeyJWK, privateKeyJWK, ecdhPubli
       privateKeyJWK,
       ecdhPublicKeyJWK,
       ecdhPrivateKeyJWK,
+      signingPublicKeyJWK,
+      signingPrivateKeyJWK,
       createdAt: new Date().toISOString()
     };
 

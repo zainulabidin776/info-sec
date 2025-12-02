@@ -12,7 +12,8 @@ router.post('/register', [
   body('username').trim().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/),
   body('password').isLength({ min: 8 }),
   body('publicKey').notEmpty(),
-  body('publicKeyJWK').notEmpty()
+  body('publicKeyJWK').notEmpty(),
+  body('signingPublicKeyJWK').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -20,7 +21,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, password, publicKey, publicKeyJWK } = req.body;
+    const { username, password, publicKey, publicKeyJWK, signingPublicKeyJWK } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ username });
@@ -42,7 +43,8 @@ router.post('/register', [
       username,
       passwordHash,
       publicKey,
-      publicKeyJWK
+      publicKeyJWK,
+      signingPublicKeyJWK
     });
 
     await user.save();
@@ -138,7 +140,8 @@ router.post('/login', [
         id: user._id,
         username: user.username,
         publicKey: user.publicKey,
-        publicKeyJWK: user.publicKeyJWK
+        publicKeyJWK: user.publicKeyJWK,
+        signingPublicKeyJWK: user.signingPublicKeyJWK
       }
     });
   } catch (error) {

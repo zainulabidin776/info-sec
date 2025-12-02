@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usersAPI, messagesAPI, filesAPI, keyExchangeAPI } from '../services/api';
 import { connectSocket, disconnectSocket, sendMessageViaSocket, onReceiveMessage, offReceiveMessage } from '../services/socket';
-import { retrieveKeys, importPrivateKey, importPublicKey, importECDHPrivateKey, importECDHPublicKey } from '../crypto/keyManager';
+import { retrieveKeys, importPrivateKey, importPublicKey, importSigningPrivateKey, importSigningPublicKey, importECDHPrivateKey, importECDHPublicKey } from '../crypto/keyManager';
 import { encryptMessage, decryptMessage, generateNonce, encryptFile, decryptFile } from '../crypto/encryption';
 import { getSessionKey, storeSessionKey, getNextSequenceNumber, isNonceUsed, storeNonce } from '../utils/storage';
 import { 
@@ -94,8 +94,8 @@ const Chat = ({ user }) => {
   const respondToKeyExchange = async (keyExchange) => {
     try {
       const keys = await retrieveKeys(user.username);
-      const rsaPrivateKey = await importPrivateKey(keys.privateKeyJWK);
-      const initiatorRSAPublicKey = await importPublicKey(keyExchange.initiatorId.publicKeyJWK);
+      const rsaPrivateKey = await importSigningPrivateKey(keys.signingPrivateKeyJWK);
+      const initiatorRSAPublicKey = await importSigningPublicKey(keyExchange.initiatorId.signingPublicKeyJWK);
 
       // Generate ECDH key pair
       const ecdhKeyPair = await generateECDHKeyPair();
@@ -261,7 +261,7 @@ const Chat = ({ user }) => {
     try {
       setKeyExchangeStatus('initiating');
       const keys = await retrieveKeys(user.username);
-      const rsaPrivateKey = await importPrivateKey(keys.privateKeyJWK);
+      const rsaPrivateKey = await importSigningPrivateKey(keys.signingPrivateKeyJWK);
       
       // Generate new ECDH key pair for this session
       const { generateECDHKeyPair } = await import('../crypto/keyManager');
@@ -326,8 +326,8 @@ const Chat = ({ user }) => {
         const keyExchange = await response.json();
 
         if (keyExchange.status === 'completed') {
-          // Import responder's RSA public key
-          const responderRSAPublicKey = await importPublicKey(responder.publicKeyJWK);
+          // Import responder's RSA-PSS public key for signature verification
+          const responderRSAPublicKey = await importSigningPublicKey(responder.signingPublicKeyJWK);
           
           // Complete key exchange
           const sessionKey = await completeKeyExchange(

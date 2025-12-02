@@ -9,7 +9,7 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const users = await User.find(
       { _id: { $ne: req.userId }, isActive: true },
-      { username: 1, publicKey: 1, publicKeyJWK: 1, createdAt: 1 }
+      { username: 1, publicKey: 1, publicKeyJWK: 1, signingPublicKeyJWK: 1, createdAt: 1 }
     ).sort({ username: 1 });
 
     res.json(users);
@@ -25,6 +25,7 @@ router.get('/:id', authenticate, async (req, res) => {
       username: 1,
       publicKey: 1,
       publicKeyJWK: 1,
+      signingPublicKeyJWK: 1,
       createdAt: 1
     });
 
