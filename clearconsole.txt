@@ -1,0 +1,5 @@
+Object.keys(localStorage).forEach(key => {
+  if (key.startsWith('e2ee_session_') || key === 'token') {
+    localStorage.removeItem(key);
+  }
+});

@@ -273,3 +273,49 @@
   margin-bottom: 10px;
 }
 
+.file-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  min-width: 250px;
+}
+
+.file-icon {
+  font-size: 24px;
+}
+
+.file-name {
+  flex: 1;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.download-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.sent .download-btn {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.sent .download-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+

@@ -70,8 +70,9 @@ export const filesAPI = {
     }
   }),
   getMetadata: (fileId) => api.get(`/files/${fileId}`),
-  download: (fileId) => api.get(`/files/${fileId}/content`, {
-    responseType: 'blob'
+  download: (fileId) => api.get(`/files/${fileId}`), // Returns metadata with chunks for decryption
+  downloadContent: (fileId) => api.get(`/files/${fileId}/content`, {
+    responseType: 'blob' // Get binary content
   })
 };
 

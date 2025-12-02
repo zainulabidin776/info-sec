@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usersAPI, messagesAPI, filesAPI, keyExchangeAPI } from '../services/api';
 import { connectSocket, disconnectSocket, sendMessageViaSocket, onReceiveMessage, offReceiveMessage } from '../services/socket';
 import { retrieveKeys, importPrivateKey, importPublicKey, importSigningPrivateKey, importSigningPublicKey, importECDHPrivateKey, importECDHPublicKey } from '../crypto/keyManager';
-import { encryptMessage, decryptMessage, generateNonce, encryptFile, decryptFile } from '../crypto/encryption';
+import { encryptMessage, decryptMessage, generateNonce, encryptFile, decryptFile, base64ToArrayBuffer } from '../crypto/encryption';
 import { getSessionKey, storeSessionKey, removeSessionKey, getNextSequenceNumber, isNonceUsed, storeNonce } from '../utils/storage';
 import { 
   createKeyExchangeInit, 
@@ -580,21 +580,138 @@ const Chat = ({ user }) => {
     }
   };
 
+  const handleFileDownload = async (fileId, filename) => {
+    try {
+      console.log('📥 Downloading file:', fileId);
+      setLoading(true);
+
+      if (!sessionKey) {
+        alert('Session key not available. Please establish key exchange first.');
+        return;
+      }
+
+      // Get file metadata (includes chunks with encryption info)
+      const metadataResponse = await filesAPI.getMetadata(fileId);
+      const fileMetadata = metadataResponse.data;
+      
+      console.log('📦 File metadata:', {
+        filename: fileMetadata.filename,
+        chunks: fileMetadata.chunks?.length,
+        mimeType: fileMetadata.mimeType,
+        fullMetadata: fileMetadata
+      });
+
+      // Download the encrypted file content from server
+      console.log('📡 Downloading encrypted file content...');
+      const contentResponse = await filesAPI.downloadContent(fileId);
+      
+      // contentResponse.data is the encrypted binary blob
+      const encryptedBlob = contentResponse.data;
+      console.log('📦 Encrypted blob size:', encryptedBlob.size, 'bytes');
+
+      // Convert blob to ArrayBuffer
+      const encryptedBuffer = await encryptedBlob.arrayBuffer();
+
+      // Get encryption metadata from chunks
+      if (!fileMetadata.chunks || fileMetadata.chunks.length === 0) {
+        throw new Error('No encryption metadata found');
+      }
+
+      console.log('🔓 Decrypting file...');
+      
+      // Get the first chunk's IV (all chunks should use related IVs)
+      const chunk = fileMetadata.chunks[0];
+      const iv = base64ToArrayBuffer(chunk.iv);
+      
+      // The encrypted file on disk has authTag appended at the end
+      const authTagLength = 16; // 128 bits
+      const ciphertextLength = encryptedBuffer.byteLength - authTagLength;
+      
+      const ciphertext = encryptedBuffer.slice(0, ciphertextLength);
+      const authTag = encryptedBuffer.slice(ciphertextLength);
+      
+      // Combine ciphertext and authTag for AES-GCM decryption
+      const combined = new Uint8Array(ciphertextLength + authTagLength);
+      combined.set(new Uint8Array(ciphertext), 0);
+      combined.set(new Uint8Array(authTag), ciphertextLength);
+
+      // Decrypt using Web Crypto API
+      const decrypted = await window.crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv: iv,
+          tagLength: 128
+        },
+        sessionKey,
+        combined
+      );
+      
+      // Create blob from decrypted data
+      const decryptedBlob = new Blob([decrypted], { type: fileMetadata.mimeType });
+      
+      // Create download link
+      const url = URL.createObjectURL(decryptedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || fileMetadata.originalFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ File downloaded and decrypted successfully');
+    } catch (error) {
+      console.error('❌ Error downloading file:', error);
+      console.error('Error details:', error.response?.data || error.stack);
+      alert('Failed to download file: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedUser || !sessionKey) return;
 
     try {
       setLoading(true);
+      console.log('📤 Starting file upload:', file.name, file.size, 'bytes');
       
       // Encrypt file
       const encryptedFile = await encryptFile(file, sessionKey);
+      console.log('🔐 File encrypted into', encryptedFile.chunks.length, 'chunks');
       
+      // Convert encrypted chunks back to binary for upload
+      // IMPORTANT: Include both ciphertext AND authTag
+      const encryptedBlob = new Blob(
+        encryptedFile.chunks.map(chunk => {
+          // Convert base64 ciphertext to binary
+          const ciphertextBinary = atob(chunk.ciphertext);
+          const ciphertextBytes = new Uint8Array(ciphertextBinary.length);
+          for (let i = 0; i < ciphertextBinary.length; i++) {
+            ciphertextBytes[i] = ciphertextBinary.charCodeAt(i);
+          }
+          
+          // Convert base64 authTag to binary
+          const authTagBinary = atob(chunk.authTag);
+          const authTagBytes = new Uint8Array(authTagBinary.length);
+          for (let i = 0; i < authTagBinary.length; i++) {
+            authTagBytes[i] = authTagBinary.charCodeAt(i);
+          }
+          
+          // Combine ciphertext + authTag
+          const combined = new Uint8Array(ciphertextBytes.length + authTagBytes.length);
+          combined.set(ciphertextBytes, 0);
+          combined.set(authTagBytes, ciphertextBytes.length);
+          
+          return combined;
+        }),
+        { type: 'application/octet-stream' }
+      );
+
       // Create form data
       const formData = new FormData();
-      formData.append('file', new Blob([encryptedFile.chunks.map(c => 
-        atob(c.ciphertext)
-      ).join('')], { type: 'application/octet-stream' }));
+      formData.append('file', encryptedBlob, 'encrypted-file');
       formData.append('originalFilename', encryptedFile.originalFilename);
       formData.append('mimeType', encryptedFile.mimeType);
       formData.append('iv', encryptedFile.chunks[0]?.iv || '');
@@ -602,22 +719,42 @@ const Chat = ({ user }) => {
       formData.append('chunks', JSON.stringify(encryptedFile.chunks));
 
       // Upload file
+      console.log('📡 Uploading encrypted file to server...');
       const uploadResponse = await filesAPI.upload(formData);
       const fileId = uploadResponse.data.fileId;
+      console.log('✅ File uploaded, ID:', fileId);
 
-      // Send file message
+      // Send file message with encrypted filename as content
       const nonce = generateNonce();
       const sequenceNumber = getNextSequenceNumber(selectedUser._id);
+      
+      // Encrypt the filename for the message content
+      const filenameEncrypted = await encryptMessage(`📎 ${file.name}`, sessionKey);
 
       await messagesAPI.send({
         recipientId: selectedUser._id,
-        ciphertext: '', // File message doesn't need text ciphertext
-        iv: encryptedFile.chunks[0]?.iv || '',
-        authTag: encryptedFile.chunks[0]?.authTag || '',
+        ciphertext: filenameEncrypted.ciphertext,
+        iv: filenameEncrypted.iv,
+        authTag: filenameEncrypted.authTag,
         nonce,
         sequenceNumber,
         messageType: 'file',
         fileId
+      });
+
+      const messageTimestamp = new Date();
+
+      // Send via Socket.io for real-time delivery
+      sendMessageViaSocket({
+        recipientId: selectedUser._id,
+        senderId: user.id,
+        ciphertext: filenameEncrypted.ciphertext,
+        iv: filenameEncrypted.iv,
+        authTag: filenameEncrypted.authTag,
+        nonce,
+        messageType: 'file',
+        fileId,
+        timestamp: messageTimestamp.toISOString()
       });
 
       // Add to local messages
@@ -628,10 +765,11 @@ const Chat = ({ user }) => {
         content: `📎 ${file.name}`,
         messageType: 'file',
         fileId,
-        timestamp: new Date()
+        timestamp: messageTimestamp
       }]);
 
       storeNonce(nonce);
+      console.log('✅ File message sent successfully');
       e.target.value = ''; // Reset file input
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -701,7 +839,25 @@ const Chat = ({ user }) => {
                     className={`message ${msg.senderId._id === user.id ? 'sent' : 'received'}`}
                   >
                     <div className="message-content">
-                      {msg.decrypted ? msg.content : '[Encrypted]'}
+                      {msg.messageType === 'file' ? (
+                        <div className="file-message">
+                          <span className="file-icon">📎</span>
+                          <span className="file-name">
+                            {msg.decrypted ? msg.content : '[Encrypted File]'}
+                          </span>
+                          {msg.fileId && msg.decrypted && (
+                            <button 
+                              className="download-btn"
+                              onClick={() => handleFileDownload(msg.fileId, msg.content.replace('📎 ', ''))}
+                              title="Download file"
+                            >
+                              ⬇️ Download
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span>{msg.decrypted ? msg.content : '[Encrypted]'}</span>
+                      )}
                     </div>
                     <div className="message-time">
                       {new Date(msg.timestamp).toLocaleTimeString()}

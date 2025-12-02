@@ -220,9 +220,16 @@ export const encryptFile = async (file, key, chunkSize = 1024 * 1024) => {
  */
 export const decryptFile = async (chunks, key) => {
   try {
+    console.log('🔓 Starting file decryption with', chunks.length, 'chunks');
     const decryptedChunks = [];
 
     for (const chunk of chunks.sort((a, b) => a.chunkIndex - b.chunkIndex)) {
+      console.log(`Decrypting chunk ${chunk.chunkIndex}:`, {
+        ivLength: chunk.iv?.length,
+        ciphertextLength: chunk.ciphertext?.length,
+        authTagLength: chunk.authTag?.length
+      });
+
       const iv = base64ToArrayBuffer(chunk.iv);
       const ciphertext = base64ToArrayBuffer(chunk.ciphertext);
       const authTag = base64ToArrayBuffer(chunk.authTag);
@@ -241,13 +248,15 @@ export const decryptFile = async (chunks, key) => {
         combined.buffer
       );
 
+      console.log(`✓ Chunk ${chunk.chunkIndex} decrypted, size:`, decrypted.byteLength);
       decryptedChunks.push(decrypted);
     }
 
+    console.log('✅ All chunks decrypted successfully');
     return new Blob(decryptedChunks);
   } catch (error) {
-    console.error('Error decrypting file:', error);
-    throw new Error('Failed to decrypt file');
+    console.error('❌ Error decrypting file:', error);
+    throw new Error('Failed to decrypt file: ' + error.message);
   }
 };
 
@@ -271,11 +280,26 @@ export const arrayBufferToBase64 = (buffer) => {
  * @returns {ArrayBuffer}
  */
 export const base64ToArrayBuffer = (base64) => {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+  try {
+    // Clean the base64 string (remove whitespace and newlines)
+    const cleanBase64 = base64.replace(/\s/g, '');
+    
+    // Decode base64 to binary string
+    const binary = atob(cleanBase64);
+    
+    // Convert binary string to Uint8Array
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  } catch (error) {
+    console.error('Failed to decode base64:', {
+      length: base64?.length,
+      sample: base64?.substring(0, 50),
+      error: error.message
+    });
+    throw new Error('Invalid base64 encoding: ' + error.message);
   }
-  return bytes.buffer;
 };
 

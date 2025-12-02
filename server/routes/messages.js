@@ -10,8 +10,14 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { recipientId, ciphertext, iv, authTag, nonce, sequenceNumber, messageType, fileId } = req.body;
 
-    if (!recipientId || !ciphertext || !iv || !authTag || !nonce || !sequenceNumber) {
+    // For file messages, ciphertext can be the encrypted filename
+    if (!recipientId || !iv || !authTag || !nonce || sequenceNumber === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Text messages must have ciphertext
+    if (messageType !== 'file' && !ciphertext) {
+      return res.status(400).json({ error: 'Text messages must have ciphertext' });
     }
 
     // Check for duplicate nonce (replay attack detection)

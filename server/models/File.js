@@ -36,6 +36,7 @@ const fileSchema = new mongoose.Schema({
     chunkIndex: Number,
     iv: String,
     authTag: String,
+    ciphertext: String, // Base64 encoded encrypted chunk data
     size: Number
   }],
   uploaderId: {
