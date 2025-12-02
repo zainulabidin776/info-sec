@@ -52,7 +52,7 @@ export const deriveAESKey = async (sharedSecret, salt, info) => {
         name: 'AES-GCM',
         length: 256
       },
-      false,
+      true, // Must be extractable so we can export to JWK for storage
       ['encrypt', 'decrypt']
     );
 

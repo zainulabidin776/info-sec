@@ -120,6 +120,22 @@
   font-size: 14px;
 }
 
+.key-exchange-status {
+  color: #ff9800;
+  font-weight: 500;
+  font-size: 14px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .messages-container {
   flex: 1;
   overflow-y: auto;

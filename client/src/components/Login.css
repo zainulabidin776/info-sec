@@ -98,6 +98,16 @@
   color: #c33;
   padding: 12px;
   border-radius: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #fcc;
+  font-weight: 500;
+}
+
+.success-message {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px;
+  border-radius: 8px;
   margin-bottom: 20px;
   border: 1px solid #fcc;
 }

@@ -134,9 +134,13 @@ export const exportPrivateKey = async (privateKey) => {
  */
 export const importPublicKey = async (jwk) => {
   try {
+    // Remove key_ops from JWK if present to avoid conflicts
+    const cleanJwk = { ...jwk };
+    delete cleanJwk.key_ops;
+    
     const key = await window.crypto.subtle.importKey(
       'jwk',
-      jwk,
+      cleanJwk,
       {
         name: 'RSA-OAEP',
         hash: 'SHA-256',
@@ -158,15 +162,19 @@ export const importPublicKey = async (jwk) => {
  */
 export const importECDHPublicKey = async (jwk) => {
   try {
+    // Remove key_ops from JWK if present (public keys shouldn't have operations)
+    const cleanJwk = { ...jwk };
+    delete cleanJwk.key_ops;
+    
     const key = await window.crypto.subtle.importKey(
       'jwk',
-      jwk,
+      cleanJwk,
       {
         name: 'ECDH',
         namedCurve: 'P-256',
       },
       true,
-      ['deriveKey', 'deriveBits']
+      [] // Public keys have empty key operations
     );
     return key;
   } catch (error) {
@@ -230,9 +238,13 @@ export const importSigningPrivateKey = async (jwk) => {
  */
 export const importSigningPublicKey = async (jwk) => {
   try {
+    // Remove key_ops from JWK if present to avoid conflicts
+    const cleanJwk = { ...jwk };
+    delete cleanJwk.key_ops;
+    
     const key = await window.crypto.subtle.importKey(
       'jwk',
-      jwk,
+      cleanJwk,
       {
         name: 'RSA-PSS',
         hash: 'SHA-256',

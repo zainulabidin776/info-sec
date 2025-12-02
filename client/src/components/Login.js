@@ -9,6 +9,7 @@ const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -25,6 +26,12 @@ const Login = ({ onLogin }) => {
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        
+        // Show success message
+        setSuccess('Login successful! Redirecting...');
+        
+        // Wait 1.5 seconds before redirecting
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         if (onLogin) {
           onLogin(user);
@@ -66,6 +73,12 @@ const Login = ({ onLogin }) => {
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+
+        // Show success message
+        setSuccess('Registration successful! Keys generated. Redirecting...');
+        
+        // Wait 1.5 seconds before redirecting
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         if (onLogin) {
           onLogin(user);
@@ -124,6 +137,7 @@ const Login = ({ onLogin }) => {
           </div>
 
           {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
 
           <button type="submit" disabled={loading} className="submit-btn">
             {loading ? 'Processing...' : (isLogin ? 'Login' : 'Register')}
