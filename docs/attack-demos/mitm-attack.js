@@ -18,44 +18,44 @@ console.log();
 console.log('SCENARIO 1: Key Exchange WITHOUT Digital Signatures');
 console.log('-'.repeat(60));
 
-// Alice and Bob want to establish a shared secret
-const alicePrivateKey = crypto.createECDH('prime256v1');
-alicePrivateKey.generateKeys();
+// Hamdan and Zain want to establish a shared secret
+const HamdanPrivateKey = crypto.createECDH('prime256v1');
+HamdanPrivateKey.generateKeys();
 
-const bobPrivateKey = crypto.createECDH('prime256v1');
-bobPrivateKey.generateKeys();
+const ZainPrivateKey = crypto.createECDH('prime256v1');
+ZainPrivateKey.generateKeys();
 
 // Attacker (Mallory) intercepts the communication
 const malloryPrivateKey = crypto.createECDH('prime256v1');
 malloryPrivateKey.generateKeys();
 
-console.log('1. Alice generates her ECDH key pair');
-console.log('   Alice Public Key:', alicePrivateKey.getPublicKey('hex').substring(0, 32) + '...');
+console.log('1. Hamdan generates her ECDH key pair');
+console.log('   Hamdan Public Key:', HamdanPrivateKey.getPublicKey('hex').substring(0, 32) + '...');
 
-console.log('\n2. Alice sends her public key to Bob');
+console.log('\n2. Hamdan sends her public key to Zain');
 console.log('   ⚠️  Mallory intercepts the message!');
 
 console.log('\n3. Mallory performs MITM attack:');
-console.log('   - Mallory receives Alice\'s public key');
-console.log('   - Mallory sends HER OWN public key to Bob (pretending to be Alice)');
-console.log('   - Mallory sends HER OWN public key to Alice (pretending to be Bob)');
+console.log('   - Mallory receives Hamdan\'s public key');
+console.log('   - Mallory sends HER OWN public key to Zain (pretending to be Hamdan)');
+console.log('   - Mallory sends HER OWN public key to Hamdan (pretending to be Zain)');
 
 // Mallory intercepts and replaces keys
-const malloryPublicKeyToBob = malloryPrivateKey.getPublicKey();
-const malloryPublicKeyToAlice = malloryPrivateKey.getPublicKey();
+const malloryPublicKeyToZain = malloryPrivateKey.getPublicKey();
+const malloryPublicKeyToHamdan = malloryPrivateKey.getPublicKey();
 
 console.log('\n4. Key Exchange Results:');
-const aliceSharedSecret = alicePrivateKey.computeSecret(malloryPublicKeyToAlice);
-const bobSharedSecret = bobPrivateKey.computeSecret(malloryPublicKeyToBob);
-const mallorySharedSecretWithAlice = malloryPrivateKey.computeSecret(alicePrivateKey.getPublicKey());
-const mallorySharedSecretWithBob = malloryPrivateKey.computeSecret(bobPrivateKey.getPublicKey());
+const HamdanSharedSecret = HamdanPrivateKey.computeSecret(malloryPublicKeyToHamdan);
+const ZainSharedSecret = ZainPrivateKey.computeSecret(malloryPublicKeyToZain);
+const mallorySharedSecretWithHamdan = malloryPrivateKey.computeSecret(HamdanPrivateKey.getPublicKey());
+const mallorySharedSecretWithZain = malloryPrivateKey.computeSecret(ZainPrivateKey.getPublicKey());
 
-console.log('   Alice thinks she shares secret with Bob:', aliceSharedSecret.toString('hex').substring(0, 16) + '...');
-console.log('   Bob thinks he shares secret with Alice:', bobSharedSecret.toString('hex').substring(0, 16) + '...');
-console.log('   ❌ Alice and Bob have DIFFERENT shared secrets!');
+console.log('   Hamdan thinks she shares secret with Zain:', HamdanSharedSecret.toString('hex').substring(0, 16) + '...');
+console.log('   Zain thinks he shares secret with Hamdan:', ZainSharedSecret.toString('hex').substring(0, 16) + '...');
+console.log('   ❌ Hamdan and Zain have DIFFERENT shared secrets!');
 console.log('   ✅ Mallory can decrypt and read all messages!');
-console.log('   Mallory-Alice secret:', mallorySharedSecretWithAlice.toString('hex').substring(0, 16) + '...');
-console.log('   Mallory-Bob secret:', mallorySharedSecretWithBob.toString('hex').substring(0, 16) + '...');
+console.log('   Mallory-Hamdan secret:', mallorySharedSecretWithHamdan.toString('hex').substring(0, 16) + '...');
+console.log('   Mallory-Zain secret:', mallorySharedSecretWithZain.toString('hex').substring(0, 16) + '...');
 
 console.log('\n' + '='.repeat(60));
 console.log('SCENARIO 2: Key Exchange WITH Digital Signatures (Protected)');
@@ -64,26 +64,26 @@ console.log('-'.repeat(60));
 // Now with digital signatures
 const { generateKeyPairSync } = require('crypto');
 
-// Alice and Bob have RSA key pairs for signing
-const aliceRSAKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
-const bobRSAKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
+// Hamdan and Zain have RSA key pairs for signing
+const HamdanRSAKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const ZainRSAKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const malloryRSAKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
-console.log('1. Alice generates ECDH key pair and signs it with her RSA private key');
-const aliceECDHKey = crypto.createECDH('prime256v1');
-aliceECDHKey.generateKeys();
+console.log('1. Hamdan generates ECDH key pair and signs it with her RSA private key');
+const HamdanECDHKey = crypto.createECDH('prime256v1');
+HamdanECDHKey.generateKeys();
 
-const aliceMessage = JSON.stringify({
-  publicKey: aliceECDHKey.getPublicKey('hex'),
+const HamdanMessage = JSON.stringify({
+  publicKey: HamdanECDHKey.getPublicKey('hex'),
   timestamp: Date.now(),
-  from: 'alice',
-  to: 'bob'
+  from: 'Hamdan',
+  to: 'Zain'
 });
 
-const aliceSignature = crypto.sign('SHA256', Buffer.from(aliceMessage), aliceRSAKeys.privateKey);
+const HamdanSignature = crypto.sign('SHA256', Buffer.from(HamdanMessage), HamdanRSAKeys.privateKey);
 
-console.log('   Alice\'s message:', aliceMessage.substring(0, 50) + '...');
-console.log('   Alice\'s signature:', aliceSignature.toString('hex').substring(0, 32) + '...');
+console.log('   Hamdan\'s message:', HamdanMessage.substring(0, 50) + '...');
+console.log('   Hamdan\'s signature:', HamdanSignature.toString('hex').substring(0, 32) + '...');
 
 console.log('\n2. Mallory intercepts and tries to replace the message');
 console.log('   Mallory creates fake message with her own ECDH key');
@@ -93,37 +93,37 @@ malloryECDHKey.generateKeys();
 const malloryFakeMessage = JSON.stringify({
   publicKey: malloryECDHKey.getPublicKey('hex'),
   timestamp: Date.now(),
-  from: 'alice',
-  to: 'bob'
+  from: 'Hamdan',
+  to: 'Zain'
 });
 
-// Mallory tries to sign with her own key (but Bob will verify with Alice's public key)
+// Mallory tries to sign with her own key (but Zain will verify with Hamdan's public key)
 const malloryFakeSignature = crypto.sign('SHA256', Buffer.from(malloryFakeMessage), malloryRSAKeys.privateKey);
 
-console.log('\n3. Bob receives the message and verifies the signature');
-console.log('   Bob verifies signature with Alice\'s RSA public key...');
+console.log('\n3. Zain receives the message and verifies the signature');
+console.log('   Zain verifies signature with Hamdan\'s RSA public key...');
 
-const isValidAliceSignature = crypto.verify(
+const isValidHamdanSignature = crypto.verify(
   'SHA256',
-  Buffer.from(aliceMessage),
-  aliceRSAKeys.publicKey,
-  aliceSignature
+  Buffer.from(HamdanMessage),
+  HamdanRSAKeys.publicKey,
+  HamdanSignature
 );
 
 const isValidMalloryFakeSignature = crypto.verify(
   'SHA256',
   Buffer.from(malloryFakeMessage),
-  aliceRSAKeys.publicKey, // Bob uses Alice's public key
+  HamdanRSAKeys.publicKey, // Zain uses Hamdan's public key
   malloryFakeSignature
 );
 
-console.log('   ✅ Alice\'s original message signature is valid:', isValidAliceSignature);
+console.log('   ✅ Hamdan\'s original message signature is valid:', isValidHamdanSignature);
 console.log('   ❌ Mallory\'s fake message signature is INVALID:', isValidMalloryFakeSignature);
 
 console.log('\n4. Result:');
 console.log('   ✅ MITM attack PREVENTED!');
-console.log('   ✅ Bob detects that the signature doesn\'t match');
-console.log('   ✅ Bob rejects the fake message');
+console.log('   ✅ Zain detects that the signature doesn\'t match');
+console.log('   ✅ Zain rejects the fake message');
 console.log('   ✅ Mallory cannot successfully perform MITM attack');
 
 console.log('\n' + '='.repeat(60));

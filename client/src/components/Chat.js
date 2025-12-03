@@ -57,9 +57,10 @@ const Chat = ({ user }) => {
   }, [selectedUser]);
 
   // Reload messages when session key changes (after key exchange completes)
+  // NOTE: Only reload if messages array is empty, otherwise Socket.io already populated it
   useEffect(() => {
-    if (sessionKey && selectedUser) {
-      console.log('🔄 Session key updated, reloading messages...');
+    if (sessionKey && selectedUser && messages.length === 0) {
+      console.log('🔄 Session key updated, loading messages...');
       loadMessages();
     }
   }, [sessionKey]);

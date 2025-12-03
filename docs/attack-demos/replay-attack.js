@@ -39,7 +39,7 @@ function decryptMessage(encryptedData, key) {
 const originalMessage = 'Transfer $1000 to account 12345';
 const encrypted1 = encryptMessage(originalMessage, sessionKey, iv);
 
-console.log('1. Alice sends encrypted message:');
+console.log('1. Hamdan sends encrypted message:');
 console.log('   Plaintext:', originalMessage);
 console.log('   Ciphertext:', encrypted1.encrypted.substring(0, 32) + '...');
 console.log('   IV:', encrypted1.iv.substring(0, 16) + '...');
@@ -49,8 +49,8 @@ console.log('   Eve stores:', encrypted1.encrypted.substring(0, 32) + '...');
 
 console.log('\n3. Later, Eve replays the same message');
 const replayedMessage = decryptMessage(encrypted1, sessionKey);
-console.log('   Bob receives and decrypts:', replayedMessage);
-console.log('   ❌ Bob executes the command AGAIN!');
+console.log('   Zain receives and decrypts:', replayedMessage);
+console.log('   ❌ Zain executes the command AGAIN!');
 console.log('   ❌ $1000 transferred TWICE!');
 
 console.log('\n' + '='.repeat(60));
@@ -128,14 +128,14 @@ function verifyAndDecryptProtectedMessage(encryptedData, key) {
   return messageData.message;
 }
 
-console.log('1. Alice sends protected message:');
+console.log('1. Hamdan sends protected message:');
 const protectedMessage = createProtectedMessage('Transfer $1000 to account 12345', sessionKey);
 console.log('   Plaintext: Transfer $1000 to account 12345');
 console.log('   Nonce:', protectedMessage.nonce.substring(0, 16) + '...');
 console.log('   Timestamp:', new Date(protectedMessage.timestamp).toISOString());
 console.log('   Sequence Number:', protectedMessage.sequenceNumber);
 
-console.log('\n2. Bob receives and verifies:');
+console.log('\n2. Zain receives and verifies:');
 try {
   const decrypted = verifyAndDecryptProtectedMessage(protectedMessage, sessionKey);
   console.log('   ✅ Message verified and decrypted:', decrypted);
